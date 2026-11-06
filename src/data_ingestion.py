@@ -1,4 +1,4 @@
-"""Download NYC taxi Parquet files to a local folder."""
+"""Downloads NYC taxi Parquet files to a local folder."""
 
 from pathlib import Path
 from urllib.request import urlretrieve

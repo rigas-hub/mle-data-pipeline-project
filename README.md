@@ -223,11 +223,15 @@ The pipeline uses a Prefect block named ny-taxi-connector and this can be create
 uv run python src/create_sqlalchemy_block.py
 ```
 
-The pipeline, which extracts the raw data, transforms it and loads it into a PostgreSQL database, can run now as follows:
+The pipeline, which extracts the raw data, transforms it, loads it into a PostgreSQL database and makes useful queries, can run now as follows:
 ```bash
 uv run python src/etl_pipeline.py 
 ```
 
+Finally, the report based on those queries can be read:
+```bash
+uv run python src/revenue_report.py 
+```
 
 ...
 
@@ -235,3 +239,10 @@ Run the tranformation tests:
 ```bash
 uv run python -m pytest -q .\tests\test_data_preperation.py
 ```
+
+The code can be formatted with the help of the linter Ruff:
+```bash
+uv run ruff check src tests
+```
+
+Don't forget to answer the project questions, list the files used and possibly their purspose and in the very end reform this README to make it proper for the final project submission. 

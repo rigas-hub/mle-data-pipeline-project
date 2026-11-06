@@ -1,3 +1,6 @@
+"""Creates a pipeline for extracting the raw data, transforms it, loads it into
+the database and, finally, makes useful queries."""
+
 from pathlib import Path
 from time import time
 from typing import cast
@@ -12,6 +15,29 @@ from data_ingestion import extract_data
 
 PIPE_ROOT = Path(__file__).resolve().parent
 REPO_ROOT = PIPE_ROOT.parents[2]
+
+OUTPUT = "data/output/revenue_report.parquet"
+
+DAILY_REVENUE_REPORT_SQL = """
+SELECT
+    pickup_date,
+    COUNT(*) AS rides,
+    SUM(total_amount) AS "daily revenue ($)"
+FROM green_taxi
+GROUP BY pickup_date
+ORDER BY pickup_date
+"""
+
+DAILY_REVENUE_REPORT_SQL_2 = """
+SELECT
+    pickup_date,
+    COUNT(*) AS rides,
+    ROUND(AVG(total_amount_per_passenger)::numeric, 2) 
+        AS "daily revenue ($) per passenger"
+FROM green_taxi
+GROUP BY pickup_date
+ORDER BY pickup_date
+"""
 
 
 @task(name="Extract Task", retries=3, retry_delay_seconds=60, log_prints=True)
@@ -74,13 +100,33 @@ def load(rides_df: pd.DataFrame, file_path: str, table_name: str):
         )
 
 
+@task(name="Report Task", retries=3, retry_delay_seconds=60, log_prints=True)
+def query_daily_revenue(input_pattern: str, output: str):
+    output_path = Path(output)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    database_block = cast(
+        SqlAlchemyConnector, SqlAlchemyConnector.load("ny-taxi-connector")
+    )
+    with database_block.get_connection() as connection:
+        daily_revenue = pd.read_sql(text(input_pattern), connection)
+
+    daily_revenue.to_parquet(output_path, index=False)
+    print(f"Wrote {daily_revenue.shape[0]} rows to {output_path}")
+
+
 @flow(name="Green Taxi NYC Data Flow")
 def main_flow(month: int):
     parquet_file, raw_data = extract(
         year=2025, month=month, output_dir="data/raw", overwrite=False
     )
     transformed_data = transform(raw_data)
-    load(transformed_data, parquet_file, "green")
+    load(transformed_data, parquet_file, "green_taxi")
+
+    query_daily_revenue(
+        input_pattern=DAILY_REVENUE_REPORT_SQL_2,
+        output=OUTPUT
+    )
 
 
 if __name__ == "__main__":
