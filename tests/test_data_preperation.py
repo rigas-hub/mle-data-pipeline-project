@@ -1,9 +1,15 @@
-import pytest
-import pandas as pd
 import numpy as np
+import pandas as pd
+import pytest
 from pandas.testing import assert_frame_equal
 
-from src.data_cleaning import *
+from src.data_cleaning import (
+    define_total_amount_per_passenger_count,
+    remove_entries_with_missing_passenger_count,
+    remove_entries_with_zero_passenger,
+    rename_snake_case_normalize_datetime,
+)
+
 
 @pytest.mark.parametrize(
     "input_frame, expected_result",
@@ -32,7 +38,7 @@ from src.data_cleaning import *
                     "pickup_date": pd.to_datetime(["2025-01-01"]),
                     "dropoff_date": pd.to_datetime(["2025-01-01"]),
                 }
-            )
+            ),
         )
     ],
 )
@@ -47,7 +53,7 @@ def test_rename_snake_case_normalize_datetime(input_frame, expected_result):
     [
         (
             pd.DataFrame(
-                 {
+                {
                     "VendorID": [2, 1, 2],
                     "lpep_pickup_datetime": pd.to_datetime(
                         [
@@ -68,7 +74,7 @@ def test_rename_snake_case_normalize_datetime(input_frame, expected_result):
                     "DOLocationID": [235, 236, 237],
                     "passenger_count": [0.0, 1.0, 0.0],
                     "total_amount": [34.00, 35.00, 36.00],
-                }                        
+                }
             ),
             pd.DataFrame(
                 {
@@ -81,7 +87,7 @@ def test_rename_snake_case_normalize_datetime(input_frame, expected_result):
                     "passenger_count": [1.0],
                     "total_amount": [35.00],
                 },
-            )
+            ),
         )
     ],
 )
@@ -96,7 +102,7 @@ def test_remove_entries_with_zero_passenger(input_frame, expected_result):
     [
         (
             pd.DataFrame(
-                 {
+                {
                     "VendorID": [2, 1, 2],
                     "lpep_pickup_datetime": pd.to_datetime(
                         [
@@ -117,7 +123,7 @@ def test_remove_entries_with_zero_passenger(input_frame, expected_result):
                     "DOLocationID": [235, 236, 237],
                     "passenger_count": [np.nan, 1.0, np.nan],
                     "total_amount": [34.00, 35.00, 36.00],
-                }                        
+                }
             ),
             pd.DataFrame(
                 {
@@ -130,7 +136,7 @@ def test_remove_entries_with_zero_passenger(input_frame, expected_result):
                     "passenger_count": [1.0],
                     "total_amount": [35.00],
                 },
-            )
+            ),
         )
     ],
 )
@@ -166,9 +172,9 @@ def test_remove_entries_with_missing_passenger_count(input_frame, expected_resul
                     "DOLocationID": [235],
                     "passenger_count": [2.0],
                     "total_amount": [34.00],
-                    "total_amount_per_passenger": [17.00]
+                    "total_amount_per_passenger": [17.00],
                 }
-            )
+            ),
         )
     ],
 )

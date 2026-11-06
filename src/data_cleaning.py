@@ -1,7 +1,8 @@
-"""Clean downloaded data by appropriate column renaming and 
+"""Clean downloaded data by appropriate column renaming and
 removing entries with needed missing values"""
 
 import pandas as pd
+
 
 def rename_snake_case_normalize_datetime(rides_df: pd.DataFrame) -> pd.DataFrame:
 
@@ -46,7 +47,9 @@ def define_total_amount_per_passenger_count(rides_df: pd.DataFrame) -> pd.DataFr
 
     rides_df = rides_df.copy()
 
-    rides_df["total_amount_per_passenger"] = rides_df["total_amount"] / rides_df["passenger_count"]
+    rides_df["total_amount_per_passenger"] = (
+        rides_df["total_amount"] / rides_df["passenger_count"]
+    )
 
     return rides_df
 

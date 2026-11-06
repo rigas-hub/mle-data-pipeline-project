@@ -16,7 +16,7 @@ def build_filename(year, month):
 def validate_month(month):
     # A small validation step keeps the error message clear before any download starts.
     if month < 1 or month > 12:
-        raise ValueError(f"Month must be between 1 and 12.")
+        raise ValueError("Month must be between 1 and 12.")
 
 
 def download_file(year, month, output_dir, overwrite):
@@ -37,10 +37,12 @@ def download_file(year, month, output_dir, overwrite):
 
 
 def extract_data(year: int, month: int, output_dir: Path, overwrite: bool) -> str:
-   
+
     validate_month(month)
     output_dir = Path(output_dir)
-    destination = download_file(year=year, month=month, output_dir=output_dir, overwrite=overwrite)
+    destination = download_file(
+        year=year, month=month, output_dir=output_dir, overwrite=overwrite
+    )
 
     return destination
 
@@ -57,7 +59,8 @@ def extract_data(year: int, month: int, output_dir: Path, overwrite: bool) -> st
     "--months",
     multiple=True,
     type=int,
-    help="Month number to download. Repeat the option, for example --months 1 --months 2.",
+    help="Month number to download. Repeat the option, " \
+    "for example --months 1 --months 2.",
 )
 @click.option(
     "--output-dir",
