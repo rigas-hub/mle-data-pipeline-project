@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:17
-    container_name: mle-data-pipeline-project
+    container_name: ny-taxi-db
     environment:
       POSTGRES_DB: ny_taxi
       POSTGRES_USER: postgres
@@ -14,7 +14,4 @@ services:
       timeout: 5s
       retries: 12
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-volumes:
-  postgres_data:
+      - ./data/db-data:/var/lib/postgresql/data

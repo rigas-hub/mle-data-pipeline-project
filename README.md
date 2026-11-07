@@ -1,241 +1,116 @@
-# Data Pipeline Project
+# NYC Green Taxi Data Pipeline
 
-Use this repository as a **template** for your data pipeline project. You will build a pipeline that takes raw NYC taxi trip records and turns them into a processed result. The project is open-ended: the brief sets the goal, and the structure, tools, and implementation choices are yours to make. Create pull requests in your own copy even if you are working alone, and use them to track your progress.
+I built this project to explore, process, and report on NYC Green Taxi trip data. I started by exploring the Parquet files with Polars and DuckDB, then compared ETL and ELT approaches. I chose ETL: transform the data in Python, load it into PostgreSQL, and query it for a daily report. Prefect orchestrates the pipeline.
 
-## Learning Objectives
+## What the pipeline does
 
-By the end of this repository, you should be able to:
+1. Downloads a monthly Green Taxi Parquet file from the NYC Taxi & Limousine Commission dataset.
+2. Cleans the data in Python: renames selected columns, derives pickup and drop-off dates, removes rows with missing or zero passenger counts, and calculates fare per passenger.
+3. Loads the transformed records into a local PostgreSQL table.
+4. Queries the table for daily ride counts and average revenue per passenger, then saves the report to `data/output/revenue_report.parquet`.
 
-- Write a script that downloads a public dataset into a local staging directory.
-- Build a pipeline that reads staged Parquet files and aggregates them into daily metrics.
-- Separate a pipeline into distinct extract, transform, and load stages.
-- Explain the difference between ETL and ELT, and justify which one your pipeline uses.
-- Orchestrate a pipeline with Prefect (stretch goal).
+The current Prefect entry point runs January 2025. The download script accepts a year and month, so it can also be run separately for another month.
 
-## Project Brief
+## Project files
 
-IIn this project you are going to build a data pipeline that processes the Green Taxi Trips portion of the NYC Taxi Trip dataset (https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page).
-
-1. Write a script that downloads the data for the first three months of 2025 and stores it in a local staging directory.
-2. Write an ETL or ELT pipeline that reads the locally staged files, processes the data, and calculates revenue per day.
-
-Bonus task, if you have time:
-
-1. Use Prefect for workflow orchestration.
-
-### How to Approach the Project
-
-Step 1: Extract (brief task 1) · Revisit: data ingestion
-- List what the download needs: host, file name per month, months, target folder
-- Build each file's link from those pieces
-- Request each file and save it to your staging directory
-- Decide what happens when you run it again
-
-Step 2: Explore · Revisit: data quality
-- Load one file into a notebook (notebooks to experiment only) 
-- Find the columns you need: when the trip happened and what was paid
-- Check them: data types, missing values, value ranges for dates and amounts
-- Note what needs cleaning before you can add up revenue per day
-
-Step 3: Transform and load (brief task 2) · Revisit: ETL vs. ELT, dbt
-- Choose ETL or ELT: transform in Python before loading, or load raw data and transform in SQL
-- Read the staged files
-- Clean based on what you found in Step 2
-- Group by day and sum the revenue
-- Write the result to your output location
-- Compare row counts before and after cleaning
-
-Step 4: Orchestrate (bonus) · Revisit: Prefect
-- Get the plain pipeline running end to end first
-- Turn each stage into a task and the whole run into a flow
-- Add retries where things can fail
-
-Suggested folder structure
-
-```text
-<your-repo>/
-├── data/
-│   ├── raw/                  # Step 1: staged downloads, never edited
-│   └── processed/            # Step 3: your daily revenue output
-├── notebooks/                # Step 2: exploration only (not part of the pipeline)
-├── src/
-│   └── <package-name>/
-│       ├── <stage modules>   # Steps 1 + 3: one per stage, e.g. extract / transform / load
-│       ├── <entry point>     # Step 3: runs the stages in order
-│       └── <flow>            # Step 4: the Prefect version
-├── tests/                    # Step 3: at least one test for your transform
-└── README.md                 # how to run it + answers to the review questions
-```
-
-
-(Notebooks are only for experimenting and exploring the data. The pipeline itself lives in src/ and runs without them.)
-
-## Learning Path
-
-### Additional Folders and Files
-
-| File / Folder | Description |
+| Path | Purpose |
 |---|---|
-| [**solution**](solution/) | A complete local ETL implementation with its own README, scripts, package, and tests. |
-| [**pyproject.toml**](pyproject.toml) | Project configuration and dependencies. |
-| [**uv.lock**](uv.lock) | Dependency lock file. |
+| `src/data_download.py` | Downloads a monthly Green Taxi Parquet file into `data/raw`. |
+| `src/data_cleaning.py` | Cleans and prepares trip data for loading. |
+| `src/etl_pipeline.py` | Orchestrates extraction, transformation, PostgreSQL loading, and report generation with Prefect. |
+| `src/create_sqlalchemy_block.py` | Creates the Prefect PostgreSQL connection block. |
+| `src/revenue_report.py` | Reads and prints the generated Parquet report. |
+| `tests/` | Tests the data download and preparation functions. |
+| `notebooks/` | Notebooks used to explore the data and compare ETL and ELT approaches. |
+| `docker-compose.yaml` | Defines the local PostgreSQL service used by the pipeline. |
+| `pyproject.toml` and `uv.lock` | Project metadata, dependencies, and locked dependency versions. |
+| `solution/` | Separate reference implementation provided with the project template. |
 
-## Setup
+## Run it locally
 
-Use [uv](https://docs.astral.sh/uv/getting-started/installation/) 0.13.5 or newer
-and Python 3.13.17 or a newer 3.13 patch release, as defined in
-[`.python-version`](.python-version).
+### Prerequisites
 
-> [!NOTE]
-> Throughout these steps, text in angle brackets like `<repo-name>` is a **placeholder**. Replace it, including the `< >` brackets, with your own value. For example, `cd <repo-name>` becomes `cd mle-data-pipeline-project`.
+- Python 3.13.17 or newer in the 3.13 series
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) 0.13.5 or newer
+- Docker
 
-### 1. Create the Repository from the Template
-
-Click **Use this template** on GitHub.
-
-When creating the repository:
-
-- Set yourself as the **Owner**
-- Choose a repository name
-- Disable **Include all branches**
-- Click **Create repository**
-
-> [!IMPORTANT]
-> If you are working in pairs or groups, only **one person** should complete this step.
-
----
-
-### 2. Add Collaborators (Pairs/Groups Only)
-
-If working with teammates:
-
-1. Open the repository on GitHub
-2. Go to **Settings → Collaborators**
-3. Add your teammates as collaborators
-4. Share the repository link with your team
-
-Teammates should accept the invitation before continuing.
-
----
-
-### 3. Clone the Repository
-
-Copy the SSH URL from the **Code** button on GitHub, then run:
+Install the project dependencies:
 
 ```bash
-git clone <copied-ssh-url>
-```
-
-The copied SSH URL will look like `git@github.com:<your-username>/<repo-name>.git`.
-
----
-
-### 4. Move into the Project Folder and Install Dependencies
-
-This installs all dependencies and creates a virtual environment in `.venv/`.
-
-```bash
-cd <repo-name>
 uv sync
 ```
 
----
+### Start PostgreSQL
 
-### 5. Open the Repository in VS Code
+Make sure Docker Desktop is running. If you are switching from the previous `docker run` setup, remove its container first; this keeps the database files in `db-data`:
 
-> [!NOTE]
-> Make sure you open VS Code from the project root so it automatically detects the environment created by `uv sync`.
-
-Launch VS Code in the project root folder:
-
-```bash
-code .
-```
-
-If you create a notebook to explore the data, select the Python environment created by `uv sync` as the kernel.
-
-## Reference Solution
-
-This repository includes a complete local reference implementation in [solution/](solution/).
-Use it to compare implementation choices and expected outputs. It is one way to solve the project, not the required structure for yours.
-
-See [solution/README.md](solution/README.md) for how to run it and how its files fit together.
-
-## Answer the Following Questions
-
-1. What are the steps you took to complete the project?
-2. What challenges did you face?
-3. What would you do differently if you had more time?
-
-
-## Run the Pipeline
-
-Download the local Parquet file for the first month of 2025:
-
-```bash
-uv run python src/data_download.py --year 2025 --month 1 --output-dir data/raw
-```
-
-To set up the local PostgreSQL database in Docker, where the data will be loaded, follow these steps:
-
-- Make sure Docker Desktop is running before you execute any Docker commands.
-
-- Create a Docker network:
-```bash
-docker network create ny-taxi
-```
-
-- Start PostgreSQL:
-```bash
-docker run -d \
-  --name ny-taxi-db \
-  --network ny-taxi \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=ny_taxi \
-  -v "$(pwd)/db-data:/var/lib/postgresql/data" \
-  -p 5432:5432 \
-  postgres:17
-```
-
-- Verify that the container is running:
-```bash
-docker ps --filter "name=ny-taxi-db"
-```
-
-The pipeline uses Prefect for orchestration. In one terminal, start the Prefect server:
-```bash
-uv run prefect server start
-```
-
-In another terminal, point Prefect at the server:
-```bash
-uv run prefect config set PREFECT_API_URL=http://127.0.0.1:4200/api
-```
-
-Create or overwrite the Prefect block named `ny-taxi-connector`:
-```bash
-uv run python src/create_sqlalchemy_block.py
-```
-
-Run the pipeline to extract and transform the raw data, load it into PostgreSQL, and generate the report:
-```bash
-uv run python src/etl_pipeline.py 
-```
-
-Display the generated report:
-```bash
-uv run python src/revenue_report.py 
-```
-
-> [!NOTE]
-> Run the pipeline tests with `uv run python -m pytest -q tests`.
-> Ruff checks the source and tests for lint issues with `uv run ruff check src tests`.
-
-When you are done, stop the Prefect server with `Ctrl + C` in its terminal. You can remove the local PostgreSQL container from Docker Desktop or with:
 ```bash
 docker rm -f ny-taxi-db
 ```
 
+If you are switching from the previous Compose setup, stop it with `docker compose down` before continuing. Its Docker-managed `postgres_data` volume is separate from the new `db-data` folder and is not automatically copied or reused.
 
-Don't forget to answer the project questions, list the files used and possibly their purspose and in the very end reform this README to make it proper for the final project submission. 
+Start PostgreSQL from the repository root:
+
+```bash
+docker compose up -d
+```
+
+On the first run, Docker downloads the PostgreSQL 17 image. Compose starts the container as `ny-taxi-db` and creates its network. The database is available at `localhost:5432` with database `ny_taxi`, username `postgres`, and password `postgres`. These credentials are for local development only. Database files are stored in `db-data` in the repository.
+
+Check that the container is running and its health check has passed:
+
+```bash
+docker compose ps
+```
+
+The container must stay running while you execute the pipeline.
+
+In a terminal, start the Prefect server:
+
+```bash
+uv run prefect server start
+```
+
+In another terminal, configure Prefect and create the database connector block:
+
+```bash
+uv run prefect config set PREFECT_API_URL=http://127.0.0.1:4200/api
+uv run python src/create_sqlalchemy_block.py
+```
+
+Run the pipeline and print the generated report:
+
+```bash
+uv run python src/etl_pipeline.py
+uv run python src/revenue_report.py
+```
+
+The report is written to `data/output/revenue_report.parquet`. The pipeline downloads January 2025 data into `data/raw` if it is not already present.
+
+To download a different month separately:
+
+```bash
+uv run python src/data_download.py --year 2025 --month 2 --output-dir data/raw
+```
+
+Stop the Prefect server with `Ctrl+C`. Stop PostgreSQL when finished:
+
+```bash
+docker compose down
+```
+
+This removes the container and its Compose network but leaves the database files in `db-data`. Delete that directory only if you also want to permanently remove the local database contents.
+
+## Tests and linting
+
+```bash
+uv run python -m pytest -q tests
+uv run ruff check src tests
+```
+
+## What I learned
+
+The biggest challenge was connecting the pieces into one reliable workflow: exploring the data, deciding how to transform it, setting up PostgreSQL, writing useful queries, and orchestrating the steps. Working through the project made database setup and pipeline behavior much more concrete, especially because database work was new to me.
+
+Given more time, I would make the pipeline easier to extend and improve its reporting and orchestration. This project was a useful first end-to-end implementation, and there is room to build on it.
