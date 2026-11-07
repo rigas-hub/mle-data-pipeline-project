@@ -23,7 +23,7 @@ Bonus task, if you have time:
 
 1. Use Prefect for workflow orchestration.
 
-How to approach it
+### How to Approach the Project
 
 Step 1: Extract (brief task 1) · Revisit: data ingestion
 - List what the download needs: host, file name per month, months, target folder
@@ -168,26 +168,21 @@ See [solution/README.md](solution/README.md) for how to run it and how its files
 3. What would you do differently if you had more time?
 
 
-## New how-to's
+## Run the Pipeline
 
-Download the local Parquet file for the first three months of 2025:
+Download the local Parquet file for the first month of 2025:
 
 ```bash
-uv run python src/data_ingestion.py --year 2025 --months 1 --months 2 --months 3 --output-dir data/raw
+uv run python src/data_download.py --year 2025 --month 1 --output-dir data/raw
 ```
 
-For setting up the local PostgreSQL database in Docker, into which the data will be loaded, the following steps are needed:
+To set up the local PostgreSQL database in Docker, where the data will be loaded, follow these steps:
 
 - Make sure Docker Desktop is running before you execute any Docker commands.
 
 - Create a Docker network:
 ```bash
 docker network create ny-taxi
-```
-
-- Create a local data directory for ensuring that the database contents survive container restarts:
-```bash
-mkdir -p db-data
 ```
 
 - Start PostgreSQL:
@@ -208,41 +203,39 @@ docker run -d \
 docker ps --filter "name=ny-taxi-db"
 ```
 
-Prefect is used for the pipeline orchestration. Use one terminal to start it:
+The pipeline uses Prefect for orchestration. In one terminal, start the Prefect server:
 ```bash
 uv run prefect server start
 ```
 
-Use another terminal to point Prefect at that server:
+In another terminal, point Prefect at the server:
 ```bash
 uv run prefect config set PREFECT_API_URL=http://127.0.0.1:4200/api
 ```
 
-The pipeline uses a Prefect block named ny-taxi-connector and this can be created or overwritten safely by:
+Create or overwrite the Prefect block named `ny-taxi-connector`:
 ```bash
 uv run python src/create_sqlalchemy_block.py
 ```
 
-The pipeline, which extracts the raw data, transforms it, loads it into a PostgreSQL database and makes useful queries, can run now as follows:
+Run the pipeline to extract and transform the raw data, load it into PostgreSQL, and generate the report:
 ```bash
 uv run python src/etl_pipeline.py 
 ```
 
-Finally, the report based on those queries can be read:
+Display the generated report:
 ```bash
 uv run python src/revenue_report.py 
 ```
 
-...
+> [!NOTE]
+> Run the pipeline tests with `uv run python -m pytest -q tests`.
+> Ruff checks the source and tests for lint issues with `uv run ruff check src tests`.
 
-Run the tranformation tests:
+When you are done, stop the Prefect server with `Ctrl + C` in its terminal. You can remove the local PostgreSQL container from Docker Desktop or with:
 ```bash
-uv run python -m pytest -q .\tests\test_data_preperation.py
+docker rm -f ny-taxi-db
 ```
 
-The code can be formatted with the help of the linter Ruff:
-```bash
-uv run ruff check src tests
-```
 
 Don't forget to answer the project questions, list the files used and possibly their purspose and in the very end reform this README to make it proper for the final project submission. 

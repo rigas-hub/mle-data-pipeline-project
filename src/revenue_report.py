@@ -1,4 +1,4 @@
-"""Reads a created monthly revenue report from local NYC taxi Parquet files."""
+"""Read a daily revenue report from a local Parquet file."""
 
 from pathlib import Path
 

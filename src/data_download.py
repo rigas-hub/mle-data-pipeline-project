@@ -13,13 +13,13 @@ def build_filename(year, month):
     return f"{DATASET}_tripdata_{year}-{month:02d}.parquet"
 
 
-def validate_month(month):
+def validate_month(month: int):
     # A small validation step keeps the error message clear before any download starts.
     if month < 1 or month > 12:
-        raise ValueError("Month must be between 1 and 12.")
+        raise ValueError("Months must be between 1 and 12.")
 
 
-def download_file(year, month, output_dir, overwrite):
+def download_file(year: int, month: int, output_dir: Path, overwrite: bool):
     filename = build_filename(year, month)
     url = f"{BASE_URL}/{filename}"
     destination = output_dir / filename
@@ -36,17 +36,6 @@ def download_file(year, month, output_dir, overwrite):
     return destination
 
 
-def extract_data(year: int, month: int, output_dir: Path, overwrite: bool) -> str:
-
-    validate_month(month)
-    output_dir = Path(output_dir)
-    destination = download_file(
-        year=year, month=month, output_dir=output_dir, overwrite=overwrite
-    )
-
-    return destination
-
-
 @click.command()
 @click.option(
     "--year",
@@ -56,11 +45,9 @@ def extract_data(year: int, month: int, output_dir: Path, overwrite: bool) -> st
     help="Dataset year to download.",
 )
 @click.option(
-    "--months",
-    multiple=True,
+    "--month",
     type=int,
-    help="Month number to download. Repeat the option, " \
-    "for example --months 1 --months 2.",
+    help="Month number to download, for example --month 1.",
 )
 @click.option(
     "--output-dir",
@@ -74,8 +61,12 @@ def extract_data(year: int, month: int, output_dir: Path, overwrite: bool) -> st
     is_flag=True,
     help="Download again even if a local file already exists.",
 )
-def main(year: int, months: tuple[int, ...], output_dir: Path, overwrite: bool) -> None:
-    extract_data(year, months, output_dir, overwrite)
+def main(year: int, month: int, output_dir: Path, overwrite: bool) -> None:
+    validate_month(month)
+    output_dir = Path(output_dir)
+    download_file(
+        year=year, month=month, output_dir=output_dir, overwrite=overwrite
+    )
 
 
 if __name__ == "__main__":

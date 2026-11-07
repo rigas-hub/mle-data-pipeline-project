@@ -1,5 +1,4 @@
-"""Creates a pipeline for extracting the raw data, transforms it, loads it into
-the database and, finally, makes useful queries."""
+"""Extract and transform raw data, load it into the database, and generate reports."""
 
 from pathlib import Path
 from time import time
@@ -11,30 +10,32 @@ from prefect_sqlalchemy import SqlAlchemyConnector
 from sqlalchemy import text
 
 from data_cleaning import main as data_transform
-from data_ingestion import extract_data
+from data_download import download_file, validate_month
 
 PIPE_ROOT = Path(__file__).resolve().parent
 REPO_ROOT = PIPE_ROOT.parents[2]
 
 OUTPUT = "data/output/revenue_report.parquet"
 
-DAILY_REVENUE_REPORT_SQL = """
+TABLE_NAME = "green_taxi"
+
+DAILY_REVENUE_REPORT_SQL = f"""
 SELECT
     pickup_date,
     COUNT(*) AS rides,
     SUM(total_amount) AS "daily revenue ($)"
-FROM green_taxi
+FROM {TABLE_NAME}
 GROUP BY pickup_date
 ORDER BY pickup_date
 """
 
-DAILY_REVENUE_REPORT_SQL_2 = """
+DAILY_REVENUE_REPORT_SQL_2 = f"""
 SELECT
     pickup_date,
     COUNT(*) AS rides,
     ROUND(AVG(total_amount_per_passenger)::numeric, 2) 
         AS "daily revenue ($) per passenger"
-FROM green_taxi
+FROM {TABLE_NAME}
 GROUP BY pickup_date
 ORDER BY pickup_date
 """
@@ -42,13 +43,14 @@ ORDER BY pickup_date
 
 @task(name="Extract Task", retries=3, retry_delay_seconds=60, log_prints=True)
 def extract(year, month, output_dir, overwrite) -> tuple[str, pd.DataFrame]:
-    """This function downloads the parquet files for green NYC taxis for specific
-      year and month in the given folder with the option to overwrite possibly 
-      existing ones."""
-    
-    destination = extract_data(
+    """Download a month's Green Taxi data and read it into a DataFrame."""
+
+    validate_month(month)
+    output_dir = Path(output_dir)
+    destination = download_file(
         year=year, month=month, output_dir=output_dir, overwrite=overwrite
     )
+
     rides_df = pd.read_parquet(destination)
     print(f"Extraction of dataframe: {rides_df.shape}")
 
@@ -57,7 +59,7 @@ def extract(year, month, output_dir, overwrite) -> tuple[str, pd.DataFrame]:
 
 @task(name="Transform Task", retries=3, retry_delay_seconds=60, log_prints=True)
 def transform(rides_df: pd.DataFrame) -> pd.DataFrame:
-    """This function transforms the taxi data..."""
+    """Remove rows with missing or zero passenger counts and derive clean fields."""
     print(f"Before transformation: {rides_df.shape}")
     rides_df = data_transform(rides_df)
     print(f"After transformation: {rides_df.shape}")
@@ -67,7 +69,7 @@ def transform(rides_df: pd.DataFrame) -> pd.DataFrame:
 
 @task(name="Load Task", retries=3, retry_delay_seconds=60, log_prints=True)
 def load(rides_df: pd.DataFrame, file_path: str, table_name: str):
-    """This function loads the transformed data into a PostgreSQL database."""
+    """Load transformed data into a PostgreSQL table."""
     del file_path
     database_block = cast(
         SqlAlchemyConnector, SqlAlchemyConnector.load("ny-taxi-connector")
@@ -86,7 +88,7 @@ def load(rides_df: pd.DataFrame, file_path: str, table_name: str):
             end_time = time()
             print("Batch time: ", end_time - start_time)
 
-        print("Finished writing to database!")
+        print("Finished writing to database.")
 
         row_count_df = pd.read_sql(
             text(f"SELECT COUNT(*) AS row_count FROM {table_name}"),
@@ -102,6 +104,8 @@ def load(rides_df: pd.DataFrame, file_path: str, table_name: str):
 
 @task(name="Report Task", retries=3, retry_delay_seconds=60, log_prints=True)
 def query_daily_revenue(input_pattern: str, output: str):
+    """Run a daily revenue query and save its results as a Parquet file."""
+
     output_path = Path(output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -121,7 +125,7 @@ def main_flow(month: int):
         year=2025, month=month, output_dir="data/raw", overwrite=False
     )
     transformed_data = transform(raw_data)
-    load(transformed_data, parquet_file, "green_taxi")
+    load(transformed_data, parquet_file, TABLE_NAME)
 
     query_daily_revenue(
         input_pattern=DAILY_REVENUE_REPORT_SQL_2,

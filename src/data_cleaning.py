@@ -1,5 +1,4 @@
-"""Cleans downloaded data by appropriate column renaming and
-removing entries with needed missing values"""
+"""Clean downloaded data by renaming columns and removing invalid passenger counts."""
 
 import pandas as pd
 
