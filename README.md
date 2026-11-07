@@ -1,5 +1,13 @@
 # NYC Green Taxi Data Pipeline
 
+![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)
+![Pandas](https://img.shields.io/badge/Pandas-150458?logo=pandas&logoColor=white)
+![Polars](https://img.shields.io/badge/Polars-CD792C?logo=polars&logoColor=white)
+![DuckDB](https://img.shields.io/badge/DuckDB-FFF000?logo=duckdb&logoColor=black)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)
+![Prefect](https://img.shields.io/badge/Prefect-024DFD?logo=prefect&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
+
 I built this project to explore, process, and report on NYC Green Taxi trip data. I started by exploring the Parquet files with Polars and DuckDB, then compared ETL and ELT approaches. I chose ETL: transform the data in Python, load it into PostgreSQL, and query it for a daily report. Prefect orchestrates the pipeline.
 
 ## What the pipeline does
