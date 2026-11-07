@@ -80,6 +80,8 @@ In a terminal, start the Prefect server:
 uv run prefect server start
 ```
 
+While the server is running, open the [Prefect dashboard](http://127.0.0.1:4200) in your browser. After starting the pipeline, use the dashboard to inspect the flow run, task states, and logs.
+
 In another terminal, configure Prefect and create the database connector block:
 
 ```bash
@@ -122,3 +124,9 @@ uv run ruff check src tests
 The biggest challenge was connecting the pieces into one reliable workflow: exploring the data, deciding how to transform it, setting up PostgreSQL, writing useful queries, and orchestrating the steps. Working through the project made database setup and pipeline behavior much more concrete, especially because database work was new to me.
 
 Given more time, I would make the pipeline easier to extend and improve its reporting and orchestration. This project was a useful first end-to-end implementation, and there is room to build on it.
+
+## Future improvements (7 November 2026)
+
+- Make the reporting period configurable, so the pipeline can process a selected month or range instead of only January 2025.
+- Strengthen data quality checks by excluding negative or implausible `total_amount` values and trips whose pickup dates fall outside the requested period.
+- Expand the tests to cover these validation rules and verify report results for different input periods.
